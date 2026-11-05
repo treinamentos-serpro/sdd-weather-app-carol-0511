@@ -11,7 +11,7 @@ export default function EmptyState({ title, hint }: EmptyStateProps) {
         🌍
       </span>
       <p className="text-white/80">{title}</p>
-      {hint && <p className="text-sm text-white/50">{hint}</p>}
+      {hint && <p className="text-sm text-white/70">{hint}</p>}
     </div>
   );
 }

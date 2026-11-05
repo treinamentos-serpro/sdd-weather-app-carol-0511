@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
-import type { City, WeatherData } from '../types/weather';
+import { useCallback, useRef, useState } from 'react';
 import { getWeather, searchCities, WeatherServiceError } from '../services/weatherService';
+import type { City, WeatherData } from '../types/weather';
 
 export type WeatherStatus = 'idle' | 'loading' | 'success' | 'error' | 'empty';
 
@@ -26,56 +26,70 @@ export function useWeather(): UseWeatherResult {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [lastCity, setLastCity] = useState<City | null>(null);
+  const requestId = useRef(0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: search inicia o fluxo na montagem; loadWeather é estável
-  const search = useCallback(async (name: string) => {
-    const trimmed = name.trim();
-    setQuery(trimmed);
-    if (!trimmed) return;
-
-    setStatus('loading');
-    setError(null);
-    setCities([]);
-    try {
-      const results = await searchCities(trimmed);
-      if (results.length === 0) {
-        setStatus('empty');
-        return;
-      }
-      // Seleciona automaticamente a primeira correspondência, mas mantém a
-      // lista para o usuário trocar.
-      setCities(results);
-      await loadWeather(results[0]);
-    } catch (err) {
-      setStatus('error');
-      setError(toMessage(err));
-    }
-  }, []);
-
-  const loadWeather = useCallback(async (city: City) => {
+  const loadWeather = useCallback(async (city: City, operationId: number) => {
+    if (operationId !== requestId.current) return;
     setStatus('loading');
     setError(null);
     setLastCity(city);
     try {
       const weather = await getWeather(city);
+      if (operationId !== requestId.current) return;
       setData(weather);
       setStatus('success');
     } catch (err) {
+      if (operationId !== requestId.current) return;
       setStatus('error');
       setError(toMessage(err));
     }
   }, []);
 
-  const selectCity = useCallback(
-    async (city: City) => {
-      await loadWeather(city);
+  const search = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim();
+      const operationId = ++requestId.current;
+      setQuery(trimmed);
+      setLastCity(null);
+      setCities([]);
+      setError(null);
+      if (!trimmed) {
+        setStatus('idle');
+        return;
+      }
+
+      setStatus('loading');
+      try {
+        const results = await searchCities(trimmed);
+        if (operationId !== requestId.current) return;
+        setCities(results);
+        if (results.length === 0) {
+          setStatus('empty');
+          return;
+        }
+        await loadWeather(results[0], operationId);
+      } catch (err) {
+        if (operationId !== requestId.current) return;
+        setStatus('error');
+        setError(toMessage(err));
+      }
     },
     [loadWeather],
   );
 
+  const selectCity = useCallback(
+    async (city: City) => {
+      if (status === 'success' && data?.city.id === city.id) return;
+      const operationId = ++requestId.current;
+      await loadWeather(city, operationId);
+    },
+    [data, loadWeather, status],
+  );
+
   const retry = useCallback(async () => {
     if (lastCity) {
-      await loadWeather(lastCity);
+      const operationId = ++requestId.current;
+      await loadWeather(lastCity, operationId);
     } else if (query) {
       await search(query);
     }
