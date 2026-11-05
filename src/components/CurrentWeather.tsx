@@ -1,6 +1,6 @@
-import type { CurrentWeather as CurrentWeatherType, City, Unit } from '../types/weather';
 import { formatTemperature } from '../lib/temperature';
 import { getWeatherIcon, getWeatherLabel } from '../lib/weatherCodes';
+import type { City, CurrentWeather as CurrentWeatherType, Unit } from '../types/weather';
 
 interface CurrentWeatherProps {
   city: City;
@@ -11,18 +11,19 @@ interface CurrentWeatherProps {
 interface MetricProps {
   icon: string;
   label: string;
-  value: string;
+  value: number | null;
+  unit: string;
 }
 
-function Metric({ icon, label, value }: MetricProps) {
+function Metric({ icon, label, value, unit }: MetricProps) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
       <span aria-hidden="true" className="text-xl">
         {icon}
       </span>
       <div>
-        <p className="text-xs text-white/50">{label}</p>
-        <p className="font-semibold">{value}</p>
+        <p className="text-xs text-white/70">{label}</p>
+        <p className="font-semibold">{value === null ? '—' : `${value}${unit}`}</p>
       </div>
     </div>
   );
@@ -40,7 +41,7 @@ export default function CurrentWeather({ city, current, unit }: CurrentWeatherPr
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-2xl font-bold md:text-3xl">{city.name}</h2>
-          {location && <p className="text-white/60">{location}</p>}
+          {location && <p className="text-white/70">{location}</p>}
 
           <div className="mt-6 flex items-center gap-4">
             <span aria-hidden="true" className="text-6xl">
@@ -54,21 +55,24 @@ export default function CurrentWeather({ city, current, unit }: CurrentWeatherPr
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Metric icon="💧" label="Umidade" value={`${Math.round(current.humidity)}%`} />
+          <Metric
+            icon="💧"
+            label="Umidade"
+            value={current.humidity === null ? null : Math.round(current.humidity)}
+            unit="%"
+          />
           <Metric
             icon="💨"
             label="Vento"
-            value={`${Math.round(current.windSpeed)} km/h`}
+            value={current.windSpeed === null ? null : Math.round(current.windSpeed)}
+            unit=" km/h"
           />
-          <Metric
-            icon="🌧️"
-            label="Precipitação"
-            value={`${current.precipitation} mm`}
-          />
+          <Metric icon="🌧️" label="Precipitação" value={current.precipitation} unit=" mm" />
           <Metric
             icon="📊"
             label="Pressão"
-            value={`${Math.round(current.pressure)} hPa`}
+            value={current.pressure === null ? null : Math.round(current.pressure)}
+            unit=" hPa"
           />
         </div>
       </div>

@@ -42,15 +42,16 @@ const WEATHER_CODE_MAP: Record<number, WeatherInfo> = {
 };
 
 const UNKNOWN: WeatherInfo = { label: 'Condição desconhecida', icon: '🌡️' };
+const UNAVAILABLE: WeatherInfo = { label: 'Condição indisponível', icon: '—' };
 
-export function getWeatherInfo(code: number): WeatherInfo {
-  return WEATHER_CODE_MAP[code] ?? UNKNOWN;
+export function getWeatherInfo(code: number | null): WeatherInfo {
+  return code === null ? UNAVAILABLE : (WEATHER_CODE_MAP[code] ?? UNKNOWN);
 }
 
-export function getWeatherLabel(code: number): string {
+export function getWeatherLabel(code: number | null): string {
   return getWeatherInfo(code).label;
 }
 
-export function getWeatherIcon(code: number): string {
+export function getWeatherIcon(code: number | null): string {
   return getWeatherInfo(code).icon;
 }
